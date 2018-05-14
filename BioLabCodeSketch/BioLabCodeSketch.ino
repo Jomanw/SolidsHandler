@@ -1,13 +1,13 @@
-/*
- * Runs the Solids Handler bot
- * 
- * Connections:
- * First solid dispenser servo control pin: 7
- * Second solid dispenser servo control pin: 8
- * Dump Tray servo control pin: 9
- * 
- * Uses a PD control strategy to control flow rate
- */
+e/*
+   Runs the Solids Handler bot
+
+   Connections:
+   First solid dispenser servo control pin: 7
+   Second solid dispenser servo control pin: 8
+   Dump Tray servo control pin: 9
+
+   Uses a PD control strategy to control flow rate
+*/
 
 
 // TODO: Import relevant libraries for reading scale
@@ -16,7 +16,8 @@ int firstServoPin = 7;
 Servo firstServo;
 int secondServoPin = 8;
 Servo secondServo;
-int dumpTrayServo = 9;
+int dumpTrayServoPin = 9;
+Servo dumpTrayServo;
 Servo currentServo;
 int servoUsed = 1;
 String readString;
@@ -32,8 +33,8 @@ int readScale() {
 }
 
 /*
- * Switches the servo being used from the first to the second, and vice versa
- */
+   Switches the servo being used from the first to the second, and vice versa
+*/
 void switchServo() {
   if (currentServo == firstServo) {
     currentServo = secondServo;
@@ -43,18 +44,18 @@ void switchServo() {
 }
 
 /*
- * Sets the flow rate of a given servo. TODO: use different functions to map input values linearly to flow rates. 
- */
- void setFlowRate(Servo servo, double flowRate) {
-    // Set the servo to some position, probably dependent on some f(flowRate) --> actual servo position, from 0 to 180 degrees. 
- }
+   Sets the flow rate of a given servo. TODO: use different functions to map input values linearly to flow rates.
+*/
+void setFlowRate(Servo servo, double flowRate) {
+  // Set the servo to some position, probably dependent on some f(flowRate) --> actual servo position, from 0 to 180 degrees.
+}
 
 
 /*
- * Dispenses a given amount of solids onto the scale, as accurately as it can
- */
+   Dispenses a given amount of solids onto the scale, as accurately as it can
+*/
 void dispenseSolid(int servo, int amount) {
-  
+
   // Will calculate an approximation of the derivative by using the old scale value, keeping track of the previous timesteps
   int oldReading = readScale();
   int bias = oldReading();
@@ -66,28 +67,28 @@ void dispenseSolid(int servo, int amount) {
   int error;
   int currentFlowRate = 0;
   float derivative;
-  // Goes through a loop of checking the scale reading, opening or closing the things as a 
+  // Goes through a loop of checking the scale reading, opening or closing the things as a
   while (true) {
-     newReading = readScale();
-     difference = newReading - oldReading;
-     error = amount - newReading + bias;
+    newReading = readScale();
+    difference = newReading - oldReading;
+    error = amount - newReading + bias;
 
-     if (error < epsilon) {
+    if (error < epsilon) {
       break;
-     }
-     newTime = millis();
-     
-     timeDifference = newTime - oldTime;
+    }
+    newTime = millis();
 
-     // Approximation of the derivative of mass / time
-     derivative = difference / (float) timeDifference;
+    timeDifference = newTime - oldTime;
 
-     currentFlowRate += error * P + derivative * D;
-     setFlowRate(currentServo, currentFlowRate);
-     
+    // Approximation of the derivative of mass / time
+    derivative = difference / (float) timeDifference;
 
-     oldReading = newReading;
-     oldTime = newTime;
+    currentFlowRate += error * P + derivative * D;
+    setFlowRate(currentServo, currentFlowRate);
+
+
+    oldReading = newReading;
+    oldTime = newTime;
   }
 }
 
@@ -98,25 +99,35 @@ void setup() {
   // Start the Serial communications
   Serial.begin(9600);
 
-  // Attach code to 
+  // Attach code to
   firstServo.attach(firstServoPin);
   secondServo.attach(secondServoPin);
   currentServo = firstServo;
+  dumpTrayServo.attach(dumpTrayServoPin);
 
-  
-  
+
 }
 
+int TILTED_TRAY_ANGLE = 45;
+int DUMP_SERVO_START_POSITION;
 
+void dumpTray() {
+  dumpTrayServo.write(TILTED_TRAY_ANGLE);
+  for (int i = 0; i < 100; i++) {
+    dumpTrayServo.write(TILTED_TRAY_ANGLE - 5);
+    delay(5);
+    dumpTrayServo.write(TILTED_TRAY_ANGLE + 5);
+    delay(5);
+  }
+  dumpTrayServo.write(DUMP_SERVO_START_POSITION); // Assuming 0 is the start position
 
+}
 
 
 
 void loop() {
   // put your main code here, to run repeatedly:
   if (Serial.available()) {
-
- 
     // Allows buffer to fill.
     delay(3);
     while (Serial.available() > 0) {
@@ -130,11 +141,18 @@ void loop() {
     if (readString == "switch") {
       switchServo();
 
-    // Otherwise, assume that it's a valid input, and then convert the string to a number which represents how much you want dispensed. 
+      // Otherwise, assume that it's a valid input, and then convert the string to a number which represents how much you want dispensed.
     } else {
       // Current format: line contains only the number, which contains how many grams are to be dispensed.
-      int amount = readString.toInt();
-      dispenseSolid(currentServo., amount);
+      int amountOne = readString.toInt(); // TODO: CHANGE THIS
+      int amountTwo = readString.toInt();
+      // Split the string
+      // Read each of the numbers, amountOne and amountTwo
+      dispenseSolid(currentServo, amountOne);
+      switchServo();
+      dispenseSolid(currentServo, amountTwo);
+      switchServo();
+      dumpTray();
     }
   }
 }
