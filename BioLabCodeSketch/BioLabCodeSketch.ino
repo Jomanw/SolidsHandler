@@ -27,6 +27,9 @@ int P = 10;
 int D = 10;
 float epsilon = 0.03;
 
+int SERVO_START_ANGLE = 0;
+int SERVO_END_ANGLE = 90;
+
 int readScale() {
   // TODO: Make this actually call a function that returns the reading from the scale. Also correct the return type.
   return 100;
@@ -45,9 +48,13 @@ void switchServo() {
 
 /*
    Sets the flow rate of a given servo. TODO: use different functions to map input values linearly to flow rates.
+   flowRate will be a percentage between 0 and 100
 */
 void setFlowRate(Servo servo, double flowRate) {
   // Set the servo to some position, probably dependent on some f(flowRate) --> actual servo position, from 0 to 180 degrees.
+  int range = SERVO_END_ANGLE - SERVO_START_ANGLE;
+  int newAngle = SERVO_START_ANGLE + range * flowRate / 100.0;
+  servo.write(newAngle);
 }
 
 
